@@ -18,7 +18,7 @@ class Game:
         
         self.screen_dim = self.grid_size * CELL_SIZE
         self.screen = pygame.display.set_mode((self.screen_dim, self.screen_dim + 70))
-        pygame.display.set_caption(f"AI Protocol: {difficulty} - Sector {grid_size}")
+        pygame.display.set_caption(f"AI Chase Game: {difficulty} - Sector {grid_size}x{grid_size}")
         
         self.font = pygame.font.SysFont("Verdana", 18, bold=True)
         self.big_font = pygame.font.SysFont("Verdana", 24, bold=True)
@@ -162,6 +162,7 @@ class Game:
 def show_menu():
     pygame.init()
     screen = pygame.display.set_mode((500, 450))
+    pygame.display.set_caption("AI Chase Game - Menu")
     f_title = pygame.font.SysFont("Verdana", 24, bold=True)
     f_sub = pygame.font.SysFont("Verdana", 18)
     
