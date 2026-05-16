@@ -116,7 +116,7 @@ class MenuChaseDemo:
         for r in range(self.grid_size):
             for c in range(self.grid_size):
                 rect = pygame.Rect(c * self.cell_w, r * self.cell_h, self.cell_w, self.cell_h)
-        pygame.draw.rect(surface, (80, 80, 150, 10), rect, 1)
+                pygame.draw.rect(surface, (80, 80, 150, 10), rect, 1)
                 if (r, c) in self.obstacles:
                     obs_surf = pygame.Surface((self.cell_w-4, self.cell_h-4), pygame.SRCALPHA)
                     obs_surf.fill((60, 60, 100, 25))
