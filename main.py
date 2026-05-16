@@ -72,6 +72,11 @@ def draw_menu_background(surface, bg_image=None):
 
     if bg_image:
         surface.blit(bg_image, (0, 0))
+        
+        # Add a dark semi-transparent overlay to make text pop out
+        overlay = pygame.Surface((w, h), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        surface.blit(overlay, (0, 0))
 
     # Subtle vignette at corners
     vignette = pygame.Surface((w, h), pygame.SRCALPHA)
