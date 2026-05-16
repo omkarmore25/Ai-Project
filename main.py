@@ -64,72 +64,68 @@ _sound = SoundManager()
 
 # ─── Animated Menu Background ──────────────────────────────────────────────────
  
-class FloatingIcon:
-    """A floating game icon (player/ai/goal) for the menu background."""
-    def __init__(self, image, w, h):
-        # Create a semi-transparent version for the background
-        self.image = image.copy()
-        self.image.set_alpha(140)
+class NeonDust:
+    """Subtle glowing dust particles for the menu background."""
+    def __init__(self, w, h):
         self.w, self.h = w, h
         self.reset()
-        # Start at random positions
-        self.x = random.uniform(50, w - 50)
-        self.y = random.uniform(50, h - 50)
+        self.x = random.uniform(0, w)
+        self.y = random.uniform(0, h)
 
     def reset(self):
+        self.radius = random.uniform(1, 3)
+        self.speed = random.uniform(0.1, 0.4)
         self.angle = random.uniform(0, 2 * math.pi)
-        self.speed = random.uniform(0.15, 0.4)
-        self.rotation = random.uniform(0, 360)
-        self.rot_speed = random.uniform(-0.3, 0.3)
-        self.float_offset = random.uniform(0, 2 * math.pi)
+        # Neon colors: Pink, Cyan, Violet
+        self.color = random.choice([(255, 0, 255), (0, 255, 255), (180, 50, 255)])
+        self.alpha = random.randint(50, 150)
+        self.twinkle = random.uniform(1.0, 3.0)
 
     def update(self, dt):
         self.x += math.cos(self.angle) * self.speed * dt * 60
         self.y += math.sin(self.angle) * self.speed * dt * 60
-        self.rotation += self.rot_speed * dt * 60
-        
-        # Bounce off edges
-        if self.x < 20 or self.x > self.w - 20:
-            self.angle = math.pi - self.angle
-        if self.y < 20 or self.y > self.h - 20:
-            self.angle = -self.angle
+        if self.x < -10 or self.x > self.w + 10 or self.y < -10 or self.y > self.h + 10:
+            self.reset()
 
     def draw(self, surface, t):
-        # Subtle floating bobbing effect
-        bob = math.sin(t * 1.5 + self.float_offset) * 8
-        rot_image = pygame.transform.rotate(self.image, self.rotation)
-        rect = rot_image.get_rect(center=(self.x, self.y + bob))
-        surface.blit(rot_image, rect)
+        a = int(self.alpha * (0.5 + 0.5 * math.sin(t * self.twinkle)))
+        # Outer glow
+        s = pygame.Surface((self.radius * 6, self.radius * 6), pygame.SRCALPHA)
+        pygame.draw.circle(s, (*self.color, a // 4), (self.radius * 3, self.radius * 3), self.radius * 3)
+        pygame.draw.circle(s, (*self.color, a), (self.radius * 3, self.radius * 3), self.radius)
+        surface.blit(s, (self.x - self.radius * 3, self.y - self.radius * 3))
 
 
-def draw_menu_background(surface, bg_image=None, decorations=None, t=0, dt=0):
-    """Render the static background with optional floating decorations."""
+def draw_menu_background(surface, bg_image=None, particles=None, t=0, dt=0):
+    """Render the retro background with neon dust and CRT scanlines."""
     w, h = surface.get_size()
-
-    surface.fill((10, 10, 20)) # Dark background fallback
+    surface.fill((10, 10, 20))
 
     if bg_image:
         surface.blit(bg_image, (0, 0))
-        
-        # Add a dark semi-transparent overlay to make text pop out
         overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 160))
+        overlay.fill((0, 0, 0, 140)) # Slightly lighter than before
         surface.blit(overlay, (0, 0))
 
-    # Draw floating decorations
-    if decorations:
-        for d in decorations:
-            d.update(dt)
-            d.draw(surface, t)
+    if particles:
+        for p in particles:
+            p.update(dt)
+            p.draw(surface, t)
 
-    # Subtle vignette at corners
+    # Subtle vignette
     vignette = pygame.Surface((w, h), pygame.SRCALPHA)
     for corner in [(0, 0), (w, 0), (0, h), (w, h)]:
         cx, cy = corner
         for rad in range(min(w, h) // 2, 0, -8):
-            a = max(0, int(60 * (1 - rad / (min(w, h) / 2))))
+            a = max(0, int(50 * (1 - rad / (min(w, h) / 2))))
             pygame.draw.circle(vignette, (0, 0, 0, a), (cx, cy), rad)
     surface.blit(vignette, (0, 0))
+
+    # CRT Scanlines
+    for y in range(0, h, 3):
+        line = pygame.Surface((w, 1), pygame.SRCALPHA)
+        line.fill((0, 0, 0, 30))
+        surface.blit(line, (0, y))
 
 
 # ─── Menu ──────────────────────────────────────────────────────────────────────
@@ -196,24 +192,8 @@ def show_menu():
     except Exception:
         pass
 
-    # Load and prepare floating decorations
-    decorations = []
-    try:
-        asset_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
-        icon_size = 45
-        img_p = pygame.image.load(os.path.join(asset_path, "player.jpg")).convert_alpha()
-        img_p = pygame.transform.smoothscale(img_p, (icon_size, icon_size))
-        img_a = pygame.image.load(os.path.join(asset_path, "ai.jpg")).convert_alpha()
-        img_a = pygame.transform.smoothscale(img_a, (icon_size, icon_size))
-        img_g = pygame.image.load(os.path.join(asset_path, "goal.jpg")).convert_alpha()
-        img_g = pygame.transform.smoothscale(img_g, (icon_size, icon_size))
-        
-        # Create a few instances of each
-        for img in [img_p, img_a, img_g]:
-            for _ in range(2): # 2 of each
-                decorations.append(FloatingIcon(img, W, H))
-    except Exception:
-        pass
+    # Neon dust particles
+    particles = [NeonDust(W, H) for _ in range(50)]
 
     # Start menu music
     _sound.play_menu_music()
@@ -249,7 +229,7 @@ def show_menu():
         hard_rect = pygame.Rect(bx, 295, btn_w, btn_h)
 
         # Draw
-        draw_menu_background(screen, bg_image, decorations, t, dt)
+        draw_menu_background(screen, bg_image, particles, t, dt)
 
         # Title banner
         banner = pygame.Surface((W, 70), pygame.SRCALPHA)
@@ -314,7 +294,7 @@ def show_menu():
         s1_rect = pygame.Rect(bx, 220, btn_w, btn_h)
         s2_rect = pygame.Rect(bx, 305, btn_w, btn_h)
 
-        draw_menu_background(screen, bg_image, decorations, t, dt)
+        draw_menu_background(screen, bg_image, particles, t, dt)
 
         diff_color = (100, 255, 120) if diff == "Easy" else (255, 100, 100)
         label_text = f"DIFFICULTY : {diff.upper()}"
