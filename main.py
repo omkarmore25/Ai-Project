@@ -64,53 +64,93 @@ _sound = SoundManager()
 
 # ─── Animated Menu Background ──────────────────────────────────────────────────
  
-class NeonDust:
-    """Subtle glowing dust particles for the menu background."""
+class MenuChaseDemo:
+    """An automated chase simulation for the menu background."""
     def __init__(self, w, h):
         self.w, self.h = w, h
+        self.grid_size = 12
+        self.cell_w = w // self.grid_size
+        self.cell_h = h // self.grid_size
         self.reset()
-        self.x = random.uniform(0, w)
-        self.y = random.uniform(0, h)
 
     def reset(self):
-        self.radius = random.uniform(1, 3)
-        self.speed = random.uniform(0.1, 0.4)
-        self.angle = random.uniform(0, 2 * math.pi)
-        # Neon colors: Pink, Cyan, Violet
-        self.color = random.choice([(255, 0, 255), (0, 255, 255), (180, 50, 255)])
-        self.alpha = random.randint(50, 150)
-        self.twinkle = random.uniform(1.0, 3.0)
+        # Random positions for player, ai and a target for player to move towards
+        self.player_pos = [random.randint(0, self.grid_size-1), random.randint(0, self.grid_size-1)]
+        self.ai_pos = [random.randint(0, self.grid_size-1), random.randint(0, self.grid_size-1)]
+        while heuristic(tuple(self.player_pos), tuple(self.ai_pos)) < 6:
+            self.ai_pos = [random.randint(0, self.grid_size-1), random.randint(0, self.grid_size-1)]
+        self.target = [random.randint(0, self.grid_size-1), random.randint(0, self.grid_size-1)]
+        
+        self.obstacles = set()
+        for _ in range(12):
+            o = (random.randint(0, self.grid_size-1), random.randint(0, self.grid_size-1))
+            if o != tuple(self.player_pos) and o != tuple(self.ai_pos):
+                self.obstacles.add(o)
+        
+        self.timer = 0
+        self.move_delay = 0.35 # seconds per step
 
     def update(self, dt):
-        self.x += math.cos(self.angle) * self.speed * dt * 60
-        self.y += math.sin(self.angle) * self.speed * dt * 60
-        if self.x < -10 or self.x > self.w + 10 or self.y < -10 or self.y > self.h + 10:
-            self.reset()
+        self.timer += dt
+        if self.timer >= self.move_delay:
+            self.timer = 0
+            
+            # Player moves toward target (simple pathfinding)
+            path_p = best_first_search(self.grid_size, tuple(self.player_pos), tuple(self.target), self.obstacles)
+            if path_p:
+                self.player_pos = list(path_p[0])
+            else:
+                self.target = [random.randint(0, self.grid_size-1), random.randint(0, self.grid_size-1)]
+                
+            # AI moves toward Player (smarter pathfinding)
+            path_a = a_star(self.grid_size, tuple(self.ai_pos), tuple(self.player_pos), self.obstacles)
+            if path_a:
+                self.ai_pos = list(path_a[0])
+            
+            # Restart if caught or target reached
+            if self.player_pos == self.ai_pos or self.player_pos == self.target:
+                self.reset()
 
-    def draw(self, surface, t):
-        a = int(self.alpha * (0.5 + 0.5 * math.sin(t * self.twinkle)))
-        # Outer glow
-        s = pygame.Surface((self.radius * 6, self.radius * 6), pygame.SRCALPHA)
-        pygame.draw.circle(s, (*self.color, a // 4), (self.radius * 3, self.radius * 3), self.radius * 3)
-        pygame.draw.circle(s, (*self.color, a), (self.radius * 3, self.radius * 3), self.radius)
-        surface.blit(s, (self.x - self.radius * 3, self.y - self.radius * 3))
+    def draw(self, surface):
+        # Draw a faint grid
+        for r in range(self.grid_size):
+            for c in range(self.grid_size):
+                rect = pygame.Rect(c * self.cell_w, r * self.cell_h, self.cell_w, self.cell_h)
+                pygame.draw.rect(surface, (100, 100, 200, 15), rect, 1)
+                if (r, c) in self.obstacles:
+                    obs_surf = pygame.Surface((self.cell_w-4, self.cell_h-4), pygame.SRCALPHA)
+                    obs_surf.fill((80, 80, 120, 40))
+                    surface.blit(obs_surf, (c * self.cell_w + 2, r * self.cell_h + 2))
+
+        # Draw Player (Green glow)
+        p_surf = pygame.Surface((20, 20), pygame.SRCALPHA)
+        pygame.draw.circle(p_surf, (0, 255, 120, 160), (10, 10), 10)
+        pygame.draw.circle(p_surf, (200, 255, 220, 200), (10, 10), 4)
+        surface.blit(p_surf, (self.player_pos[1]*self.cell_w + self.cell_w//2 - 10, 
+                             self.player_pos[0]*self.cell_h + self.cell_h//2 - 10))
+        
+        # Draw AI (Red glow)
+        a_surf = pygame.Surface((24, 24), pygame.SRCALPHA)
+        pygame.draw.circle(a_surf, (255, 50, 50, 160), (12, 12), 12)
+        pygame.draw.circle(a_surf, (255, 200, 200, 200), (12, 12), 5)
+        surface.blit(a_surf, (self.ai_pos[1]*self.cell_w + self.cell_w//2 - 12, 
+                             self.ai_pos[0]*self.cell_h + self.cell_h//2 - 12))
 
 
-def draw_menu_background(surface, bg_image=None, particles=None, t=0, dt=0):
-    """Render the retro background with neon dust and CRT scanlines."""
+def draw_menu_background(surface, bg_image=None, demo=None, t=0, dt=0):
+    """Render the retro background with an automated chase simulation."""
     w, h = surface.get_size()
     surface.fill((10, 10, 20))
 
     if bg_image:
         surface.blit(bg_image, (0, 0))
         overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 140)) # Slightly lighter than before
+        overlay.fill((0, 0, 0, 140))
         surface.blit(overlay, (0, 0))
 
-    if particles:
-        for p in particles:
-            p.update(dt)
-            p.draw(surface, t)
+    if demo:
+        demo.update(dt)
+        demo.draw(surface)
 
     # Subtle vignette
     vignette = pygame.Surface((w, h), pygame.SRCALPHA)
@@ -124,7 +164,7 @@ def draw_menu_background(surface, bg_image=None, particles=None, t=0, dt=0):
     # CRT Scanlines
     for y in range(0, h, 3):
         line = pygame.Surface((w, 1), pygame.SRCALPHA)
-        line.fill((0, 0, 0, 30))
+        line.fill((0, 0, 0, 35))
         surface.blit(line, (0, y))
 
 
@@ -192,8 +232,8 @@ def show_menu():
     except Exception:
         pass
 
-    # Neon dust particles
-    particles = [NeonDust(W, H) for _ in range(50)]
+    # Chase demo animation
+    demo = MenuChaseDemo(W, H)
 
     # Start menu music
     _sound.play_menu_music()
@@ -229,7 +269,7 @@ def show_menu():
         hard_rect = pygame.Rect(bx, 295, btn_w, btn_h)
 
         # Draw
-        draw_menu_background(screen, bg_image, particles, t, dt)
+        draw_menu_background(screen, bg_image, demo, t, dt)
 
         # Title banner
         banner = pygame.Surface((W, 70), pygame.SRCALPHA)
@@ -294,7 +334,7 @@ def show_menu():
         s1_rect = pygame.Rect(bx, 220, btn_w, btn_h)
         s2_rect = pygame.Rect(bx, 305, btn_w, btn_h)
 
-        draw_menu_background(screen, bg_image, particles, t, dt)
+        draw_menu_background(screen, bg_image, demo, t, dt)
 
         diff_color = (100, 255, 120) if diff == "Easy" else (255, 100, 100)
         label_text = f"DIFFICULTY : {diff.upper()}"
