@@ -133,7 +133,7 @@ class GridLine:
         surface.blit(line_surf, (0, int(self.y)))
 
 
-def draw_animated_background(surface, particles, grid_lines, t, dt):
+def draw_animated_background(surface, particles, grid_lines, t, dt, bg_image=None):
     """Render the full animated background: gradient + grid + particles."""
     w, h = surface.get_size()
 
@@ -144,6 +144,9 @@ def draw_animated_background(surface, particles, grid_lines, t, dt):
         g = int(5  + 8   * ratio)
         b = int(20 + 30  * ratio)
         pygame.draw.line(surface, (r, g, b), (0, y), (w, y))
+
+    if bg_image:
+        surface.blit(bg_image, (0, 0))
 
     # Subtle vignette at corners
     vignette = pygame.Surface((w, h), pygame.SRCALPHA)
@@ -223,6 +226,15 @@ def show_menu():
     particles  = [Particle(W, H) for _ in range(70)]
     grid_lines = [GridLine(W, H) for _ in range(18)]
 
+    bg_image = None
+    try:
+        bg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "menu_bg.png")
+        bg_image = pygame.image.load(bg_path).convert()
+        bg_image = pygame.transform.smoothscale(bg_image, (W, H))
+        bg_image.set_alpha(80)  # blend with gradient
+    except Exception:
+        pass
+
     # Start menu music
     _sound.play_menu_music()
 
@@ -257,7 +269,7 @@ def show_menu():
         hard_rect = pygame.Rect(bx, 295, btn_w, btn_h)
 
         # Draw
-        draw_animated_background(screen, particles, grid_lines, t, dt)
+        draw_animated_background(screen, particles, grid_lines, t, dt, bg_image)
 
         # Title banner
         banner = pygame.Surface((W, 70), pygame.SRCALPHA)
@@ -322,7 +334,7 @@ def show_menu():
         s1_rect = pygame.Rect(bx, 220, btn_w, btn_h)
         s2_rect = pygame.Rect(bx, 305, btn_w, btn_h)
 
-        draw_animated_background(screen, particles, grid_lines, t, dt)
+        draw_animated_background(screen, particles, grid_lines, t, dt, bg_image)
 
         diff_color = (100, 255, 120) if diff == "Easy" else (255, 100, 100)
         label_text = f"DIFFICULTY : {diff.upper()}"
