@@ -116,10 +116,10 @@ class MenuChaseDemo:
         for r in range(self.grid_size):
             for c in range(self.grid_size):
                 rect = pygame.Rect(c * self.cell_w, r * self.cell_h, self.cell_w, self.cell_h)
-                pygame.draw.rect(surface, (100, 100, 200, 15), rect, 1)
+        pygame.draw.rect(surface, (80, 80, 150, 10), rect, 1)
                 if (r, c) in self.obstacles:
                     obs_surf = pygame.Surface((self.cell_w-4, self.cell_h-4), pygame.SRCALPHA)
-                    obs_surf.fill((80, 80, 120, 40))
+                    obs_surf.fill((60, 60, 100, 25))
                     surface.blit(obs_surf, (c * self.cell_w + 2, r * self.cell_h + 2))
 
         # Draw Player (Green glow)
@@ -145,7 +145,7 @@ def draw_menu_background(surface, bg_image=None, demo=None, t=0, dt=0):
     if bg_image:
         surface.blit(bg_image, (0, 0))
         overlay = pygame.Surface((w, h), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 140))
+        overlay.fill((0, 0, 0, 190))
         surface.blit(overlay, (0, 0))
 
     if demo:
@@ -193,7 +193,7 @@ def draw_button(surface, rect, text, font, text_color, border_color, hover=False
 
     # Glass fill
     glass = pygame.Surface((w, h), pygame.SRCALPHA)
-    glass.fill((255, 255, 255, 18 if not hover else 35))
+    glass.fill((0, 0, 0, 60 if not hover else 100))
     surface.blit(glass, (x, y))
 
     # Animated glow border when hovered
