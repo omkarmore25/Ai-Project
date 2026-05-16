@@ -64,86 +64,11 @@ _sound = SoundManager()
 
 # ─── Animated Particle Background ──────────────────────────────────────────────
 
-class Particle:
-    """A glowing floating particle for the menu background."""
-
-    def __init__(self, w, h):
-        self.w, self.h = w, h
-        self.reset()
-
-    def reset(self):
-        self.x = random.uniform(0, self.w)
-        self.y = random.uniform(0, self.h)
-        self.radius = random.uniform(1.5, 4.5)
-        self.speed = random.uniform(0.3, 1.0)
-        self.angle = random.uniform(0, 2 * math.pi)
-        self.dx = math.cos(self.angle) * self.speed
-        self.dy = math.sin(self.angle) * self.speed
-        hue = random.choice([200, 260, 180, 300])   # blue / purple / cyan / violet
-        base = random.randint(140, 255)
-        if hue == 200:   self.color = (30, base // 2, base)
-        elif hue == 260: self.color = (base // 2, 30, base)
-        elif hue == 180: self.color = (30, base, base)
-        else:            self.color = (base, 30, base)
-        self.alpha = random.randint(80, 220)
-        self.twinkle_speed = random.uniform(1.5, 4.0)
-        self.twinkle_offset = random.uniform(0, 2 * math.pi)
-
-    def update(self, dt):
-        self.x += self.dx * dt * 60
-        self.y += self.dy * dt * 60
-        if self.x < -10 or self.x > self.w + 10 or self.y < -10 or self.y > self.h + 10:
-            self.reset()
-
-    def draw(self, surface, t):
-        alpha = int(self.alpha * (0.55 + 0.45 * math.sin(self.twinkle_speed * t + self.twinkle_offset)))
-        r = int(self.radius * (0.8 + 0.2 * math.sin(self.twinkle_speed * t * 0.7 + self.twinkle_offset)))
-        if r < 1:
-            r = 1
-        glow_surf = pygame.Surface((r * 6, r * 6), pygame.SRCALPHA)
-        for layer, a_frac in [(r * 3, 0.15), (r * 2, 0.3), (r, 1.0)]:
-            col = (*self.color, int(alpha * a_frac))
-            pygame.draw.circle(glow_surf, col, (r * 3, r * 3), layer)
-        surface.blit(glow_surf, (int(self.x) - r * 3, int(self.y) - r * 3),
-                     special_flags=pygame.BLEND_RGBA_ADD)
-
-
-class GridLine:
-    """Animated perspective grid line sweeping through the background."""
-
-    def __init__(self, w, h):
-        self.w, self.h = w, h
-        self.reset()
-
-    def reset(self):
-        self.y = random.uniform(0, self.h)
-        self.alpha = random.randint(12, 35)
-        self.speed = random.uniform(0.15, 0.55)
-
-    def update(self, dt):
-        self.y += self.speed * dt * 60
-        if self.y > self.h:
-            self.y = 0
-            self.alpha = random.randint(12, 35)
-            self.speed = random.uniform(0.15, 0.55)
-
-    def draw(self, surface):
-        line_surf = pygame.Surface((self.w, 1), pygame.SRCALPHA)
-        line_surf.fill((80, 160, 255, self.alpha))
-        surface.blit(line_surf, (0, int(self.y)))
-
-
-def draw_animated_background(surface, particles, grid_lines, t, dt, bg_image=None):
-    """Render the full animated background: gradient + grid + particles."""
+def draw_menu_background(surface, bg_image=None):
+    """Render the static background: optional image + vignette."""
     w, h = surface.get_size()
 
-    # Deep space gradient (top → bottom)
-    for y in range(h):
-        ratio = y / h
-        r = int(5  + 10  * ratio)
-        g = int(5  + 8   * ratio)
-        b = int(20 + 30  * ratio)
-        pygame.draw.line(surface, (r, g, b), (0, y), (w, y))
+    surface.fill((10, 10, 20)) # Dark background fallback
 
     if bg_image:
         surface.blit(bg_image, (0, 0))
@@ -156,16 +81,6 @@ def draw_animated_background(surface, particles, grid_lines, t, dt, bg_image=Non
             a = max(0, int(60 * (1 - rad / (min(w, h) / 2))))
             pygame.draw.circle(vignette, (0, 0, 0, a), (cx, cy), rad)
     surface.blit(vignette, (0, 0))
-
-    # Grid sweep lines
-    for gl in grid_lines:
-        gl.update(dt)
-        gl.draw(surface)
-
-    # Particles
-    for p in particles:
-        p.update(dt)
-        p.draw(surface, t)
 
 
 # ─── Menu ──────────────────────────────────────────────────────────────────────
@@ -222,16 +137,13 @@ def show_menu():
     f_small  = pygame.font.SysFont("Verdana", 13)
     clock    = pygame.time.Clock()
 
-    # Background elements
-    particles  = [Particle(W, H) for _ in range(70)]
-    grid_lines = [GridLine(W, H) for _ in range(18)]
-
+    # Background element
     bg_image = None
     try:
         bg_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "menu_bg.png")
         bg_image = pygame.image.load(bg_path).convert()
         bg_image = pygame.transform.smoothscale(bg_image, (W, H))
-        bg_image.set_alpha(80)  # blend with gradient
+        # Keep image fully opaque now that particles are gone
     except Exception:
         pass
 
@@ -269,7 +181,7 @@ def show_menu():
         hard_rect = pygame.Rect(bx, 295, btn_w, btn_h)
 
         # Draw
-        draw_animated_background(screen, particles, grid_lines, t, dt, bg_image)
+        draw_menu_background(screen, bg_image)
 
         # Title banner
         banner = pygame.Surface((W, 70), pygame.SRCALPHA)
@@ -334,7 +246,7 @@ def show_menu():
         s1_rect = pygame.Rect(bx, 220, btn_w, btn_h)
         s2_rect = pygame.Rect(bx, 305, btn_w, btn_h)
 
-        draw_animated_background(screen, particles, grid_lines, t, dt, bg_image)
+        draw_menu_background(screen, bg_image)
 
         diff_color = (100, 255, 120) if diff == "Easy" else (255, 100, 100)
         label_text = f"DIFFICULTY : {diff.upper()}"
