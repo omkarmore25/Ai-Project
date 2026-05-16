@@ -62,10 +62,48 @@ class SoundManager:
 # Global sound manager (created once)
 _sound = SoundManager()
 
-# ─── Animated Particle Background ──────────────────────────────────────────────
+# ─── Animated Menu Background ──────────────────────────────────────────────────
+ 
+class FloatingIcon:
+    """A floating game icon (player/ai/goal) for the menu background."""
+    def __init__(self, image, w, h):
+        # Create a semi-transparent version for the background
+        self.image = image.copy()
+        self.image.set_alpha(140)
+        self.w, self.h = w, h
+        self.reset()
+        # Start at random positions
+        self.x = random.uniform(50, w - 50)
+        self.y = random.uniform(50, h - 50)
 
-def draw_menu_background(surface, bg_image=None):
-    """Render the static background: optional image + vignette."""
+    def reset(self):
+        self.angle = random.uniform(0, 2 * math.pi)
+        self.speed = random.uniform(0.15, 0.4)
+        self.rotation = random.uniform(0, 360)
+        self.rot_speed = random.uniform(-0.3, 0.3)
+        self.float_offset = random.uniform(0, 2 * math.pi)
+
+    def update(self, dt):
+        self.x += math.cos(self.angle) * self.speed * dt * 60
+        self.y += math.sin(self.angle) * self.speed * dt * 60
+        self.rotation += self.rot_speed * dt * 60
+        
+        # Bounce off edges
+        if self.x < 20 or self.x > self.w - 20:
+            self.angle = math.pi - self.angle
+        if self.y < 20 or self.y > self.h - 20:
+            self.angle = -self.angle
+
+    def draw(self, surface, t):
+        # Subtle floating bobbing effect
+        bob = math.sin(t * 1.5 + self.float_offset) * 8
+        rot_image = pygame.transform.rotate(self.image, self.rotation)
+        rect = rot_image.get_rect(center=(self.x, self.y + bob))
+        surface.blit(rot_image, rect)
+
+
+def draw_menu_background(surface, bg_image=None, decorations=None, t=0, dt=0):
+    """Render the static background with optional floating decorations."""
     w, h = surface.get_size()
 
     surface.fill((10, 10, 20)) # Dark background fallback
@@ -77,6 +115,12 @@ def draw_menu_background(surface, bg_image=None):
         overlay = pygame.Surface((w, h), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 160))
         surface.blit(overlay, (0, 0))
+
+    # Draw floating decorations
+    if decorations:
+        for d in decorations:
+            d.update(dt)
+            d.draw(surface, t)
 
     # Subtle vignette at corners
     vignette = pygame.Surface((w, h), pygame.SRCALPHA)
@@ -152,6 +196,25 @@ def show_menu():
     except Exception:
         pass
 
+    # Load and prepare floating decorations
+    decorations = []
+    try:
+        asset_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+        icon_size = 45
+        img_p = pygame.image.load(os.path.join(asset_path, "player.jpg")).convert_alpha()
+        img_p = pygame.transform.smoothscale(img_p, (icon_size, icon_size))
+        img_a = pygame.image.load(os.path.join(asset_path, "ai.jpg")).convert_alpha()
+        img_a = pygame.transform.smoothscale(img_a, (icon_size, icon_size))
+        img_g = pygame.image.load(os.path.join(asset_path, "goal.jpg")).convert_alpha()
+        img_g = pygame.transform.smoothscale(img_g, (icon_size, icon_size))
+        
+        # Create a few instances of each
+        for img in [img_p, img_a, img_g]:
+            for _ in range(2): # 2 of each
+                decorations.append(FloatingIcon(img, W, H))
+    except Exception:
+        pass
+
     # Start menu music
     _sound.play_menu_music()
 
@@ -186,7 +249,7 @@ def show_menu():
         hard_rect = pygame.Rect(bx, 295, btn_w, btn_h)
 
         # Draw
-        draw_menu_background(screen, bg_image)
+        draw_menu_background(screen, bg_image, decorations, t, dt)
 
         # Title banner
         banner = pygame.Surface((W, 70), pygame.SRCALPHA)
@@ -251,7 +314,7 @@ def show_menu():
         s1_rect = pygame.Rect(bx, 220, btn_w, btn_h)
         s2_rect = pygame.Rect(bx, 305, btn_w, btn_h)
 
-        draw_menu_background(screen, bg_image)
+        draw_menu_background(screen, bg_image, decorations, t, dt)
 
         diff_color = (100, 255, 120) if diff == "Easy" else (255, 100, 100)
         label_text = f"DIFFICULTY : {diff.upper()}"
