@@ -11,7 +11,7 @@ from pathfinding import a_star, best_first_search, heuristic
 class SoundManager:
     """Loads and plays all game sounds. Gracefully degrades if files are missing."""
 
-    SOUNDS_DIR = os.path.join("assets", "sounds")
+    SOUNDS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "sounds")
 
     def __init__(self):
         pygame.mixer.pre_init(44100, -16, 1, 512)
@@ -406,7 +406,7 @@ class Game:
     def load_assets(self):
         self.use_assets = True
         try:
-            path = "assets"
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
             self.img_player = pygame.image.load(os.path.join(path, "player.jpg")).convert_alpha()
             self.img_player = pygame.transform.scale(self.img_player, (CELL_SIZE - 8, CELL_SIZE - 8))
             self.img_ai     = pygame.image.load(os.path.join(path, "ai.jpg")).convert_alpha()
@@ -613,6 +613,10 @@ class Game:
             self.screen.blit(self.img_goal,   (self.goal_pos[1]   * CELL_SIZE + 4, self.goal_pos[0]   * CELL_SIZE + 4))
             self.screen.blit(self.img_player, (self.player_pos[1] * CELL_SIZE + 4, self.player_pos[0] * CELL_SIZE + 4))
             self.screen.blit(self.img_ai,     (self.ai_pos[1]     * CELL_SIZE + 4, self.ai_pos[0]     * CELL_SIZE + 4))
+        else:
+            pygame.draw.rect(self.screen, (255, 215, 0), (self.goal_pos[1]   * CELL_SIZE + 4, self.goal_pos[0]   * CELL_SIZE + 4, CELL_SIZE - 8, CELL_SIZE - 8))
+            pygame.draw.rect(self.screen, GREEN,         (self.player_pos[1] * CELL_SIZE + 4, self.player_pos[0] * CELL_SIZE + 4, CELL_SIZE - 8, CELL_SIZE - 8))
+            pygame.draw.rect(self.screen, RED,           (self.ai_pos[1]     * CELL_SIZE + 4, self.ai_pos[0]     * CELL_SIZE + 4, CELL_SIZE - 8, CELL_SIZE - 8))
         
         self.draw_danger_zone()
         self.draw_hud()
