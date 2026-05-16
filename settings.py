@@ -14,8 +14,8 @@ FPS = 60
 # Difficulty -> Grid Size -> {Obstacles, AI Speed, Timer}
 DIFFICULTY_DATA = {
     "Easy": {
-        10: {"obs": 8, "speed": 0.5, "time": 30},
-        15: {"obs": 17, "speed": 0.5, "time": 40}
+        10: {"obs": 8, "speed": 0.2, "time": 30},
+        15: {"obs": 17, "speed": 0.2, "time": 40}
     },
     "Hard": {
         10: {"obs": 11, "speed": 0.2, "time": 15},
